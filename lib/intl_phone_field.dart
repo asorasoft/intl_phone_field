@@ -6,11 +6,23 @@ import 'package:flutter/services.dart';
 import './countries.dart';
 import './phone_number.dart';
 
+class PhoneFieldController extends TextEditingController {
+  void Function(String? countryCode) updateCountryCode = (_) {};
+  String? Function() getCountryCode = () => null;
+
+  set countryCode(String? countryCode) {
+    updateCountryCode(countryCode);
+  }
+
+  String? get countryCode => getCountryCode();
+}
+
 // ignore: must_be_immutable
 class IntlPhoneField extends StatefulWidget {
   final bool obscureText;
   final TextAlign textAlign;
   final VoidCallback? onTap;
+  final PhoneFieldController? phoneEditingController;
 
   /// {@macro flutter.widgets.editableText.readOnly}
   final bool readOnly;
@@ -174,7 +186,8 @@ class IntlPhoneField extends StatefulWidget {
       this.countryCodeTextColor,
       this.dropDownArrowColor,
       this.autofocus = false,
-      this.textInputAction});
+      this.textInputAction,
+      this.phoneEditingController});
 
   @override
   _IntlPhoneFieldState createState() => _IntlPhoneFieldState();
@@ -190,21 +203,21 @@ class _IntlPhoneFieldState extends State<IntlPhoneField> {
   @override
   void initState() {
     super.initState();
-    _countryList = widget.countries == null
-        ? countries
-        : countries
-            .where((country) => widget.countries!.contains(country['code']))
-            .toList();
+    if (widget.phoneEditingController != null) {
+      widget.phoneEditingController!.updateCountryCode = (String? countryCode) {
+        setState(() {
+          if (countryCode != null) {
+            _selectedCountry = _countryList.firstWhere((item) => item['dial_code'] == (countryCode.replaceAll('+', '')), orElse: () => _countryList.first);
+          }
+        });
+      };
+      widget.phoneEditingController!.getCountryCode = () => _selectedCountry['dial_code'];
+    }
+    _countryList = widget.countries == null ? countries : countries.where((country) => widget.countries!.contains(country['code'])).toList();
     filteredCountries = _countryList;
-    _selectedCountry = _countryList.firstWhere(
-        (item) => item['code'] == (widget.initialCountryCode ?? 'US'),
-        orElse: () => _countryList.first);
+    _selectedCountry = _countryList.firstWhere((item) => item['code'] == (widget.initialCountryCode ?? 'US'), orElse: () => _countryList.first);
 
-    validator = widget.autoValidate
-        ? ((value) => value != null && value.length != 10
-            ? 'Invalid Mobile Number'
-            : null)
-        : widget.validator;
+    validator = widget.autoValidate ? ((value) => value != null && value.length != 10 ? 'Invalid Mobile Number' : null) : widget.validator;
   }
 
   Future<void> _changeCountry() async {
@@ -225,11 +238,7 @@ class _IntlPhoneFieldState extends State<IntlPhoneField> {
                   ),
                   onChanged: (value) {
                     setState(() {
-                      filteredCountries = _countryList
-                          .where((country) => country['name']!
-                              .toLowerCase()
-                              .contains(value.toLowerCase()))
-                          .toList();
+                      filteredCountries = _countryList.where((country) => country['name']!.toLowerCase().contains(value.toLowerCase())).toList();
                     });
                   },
                 ),
@@ -261,8 +270,7 @@ class _IntlPhoneFieldState extends State<IntlPhoneField> {
                               widget.onCountryChanged!(
                                 PhoneNumber(
                                   countryISOCode: _selectedCountry['code'],
-                                  countryCode:
-                                      '+${_selectedCountry['dial_code']}',
+                                  countryCode: '+${_selectedCountry['dial_code']}',
                                   number: '',
                                 ),
                               );
@@ -367,9 +375,7 @@ class _IntlPhoneFieldState extends State<IntlPhoneField> {
               FittedBox(
                 child: Text(
                   '+${_selectedCountry['dial_code']}',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: widget.countryCodeTextColor),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: widget.countryCodeTextColor),
                 ),
               ),
               SizedBox(width: 8),
