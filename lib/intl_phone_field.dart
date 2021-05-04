@@ -205,13 +205,14 @@ class _IntlPhoneFieldState extends State<IntlPhoneField> {
     super.initState();
     if (widget.phoneEditingController != null) {
       widget.phoneEditingController!.updateCountryCode = (String? countryCode) {
+        print(_selectedCountry);
         setState(() {
           if (countryCode != null) {
-            _selectedCountry = _countryList.firstWhere((item) => item['dial_code'] == (countryCode.replaceAll('+', '')), orElse: () => _countryList.first);
+            _selectedCountry = _countryList.firstWhere((item) => "${item['dial_code']}" == (countryCode.replaceAll('+', '')), orElse: () => _countryList.first);
           }
         });
       };
-      widget.phoneEditingController!.getCountryCode = () => _selectedCountry['dial_code'];
+      widget.phoneEditingController!.getCountryCode = () => "${_selectedCountry['dial_code']}";
     }
     _countryList = widget.countries == null ? countries : countries.where((country) => widget.countries!.contains(country['code'])).toList();
     filteredCountries = _countryList;
